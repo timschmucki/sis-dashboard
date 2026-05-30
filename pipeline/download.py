@@ -95,7 +95,8 @@ def download_wertrechte(out_dir):
         allow_redirects=True,
     )
     r0.raise_for_status()
-    print(f"        Status {r0.status_code}, cookies: {dict(session.cookies)}")
+    cookie_names = [c.name for c in session.cookies]
+    print(f"        Status {r0.status_code}, cookies: {cookie_names}")
 
     # Step 2: load the query page (may be the same URL or redirect target)
     # The form action token is on this page
