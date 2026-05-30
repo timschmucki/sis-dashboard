@@ -1,0 +1,62 @@
+name: Update SIS Dashboard
+
+on:
+  # Every Sunday at 20:00 Zurich time (18:00 UTC during CEST, 19:00 UTC during CET)
+  # Using 18:00 UTC which covers summer time (CEST = UTC+2)
+  schedule:
+    - cron: '0 18 * * 0'
+  # Manual trigger from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pandas openpyxl pdfplumber requests
+
+      - name: Download WertrechteIsinReport and BondExplorer from SIX
+        run: python pipeline/download.py --out-dir data/
+
+      - name: Back up previous classified data (for weekly diff)
+        run: |
+          if [ -f data/classified.json ]; then
+            cp data/classified.json data/classified_prev.json
+            echo "Previous data backed up"
+          else
+            echo "First run — no previous data to diff against"
+          fi
+
+      - name: Run classifier and rebuild dashboard
+        run: |
+          python pipeline/run.py \
+            --wertrechte   data/WertrechteIsinReport.pdf \
+            --bondexplorer data/BondExplorer.csv \
+            --pp-training  data/PP_Training.xlsx \
+            --output       index.html \
+            --data-out     data/classified.json \
+            --prev         data/classified_prev.json \
+            --template     pipeline/_template.html
+
+      - name: Commit and push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html \
+                  data/classified.json \
+                  data/classified_prev.json \
+                  data/WertrechteIsinReport.pdf \
+                  data/BondExplorer.csv
+          git diff --cached --quiet \
+            && echo "Nothing changed — no commit needed" \
+            || git commit -m "Auto-update $(date +'%Y-%m-%d') — weekly refresh"
+          git push
