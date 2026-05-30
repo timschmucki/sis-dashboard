@@ -1,12 +1,12 @@
 name: Update SIS Dashboard
 
 on:
-  # Every Sunday at 20:00 Zurich time (18:00 UTC during CEST, 19:00 UTC during CET)
-  # Using 18:00 UTC which covers summer time (CEST = UTC+2)
   schedule:
     - cron: '0 18 * * 0'
-  # Manual trigger from the Actions tab
   workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
@@ -14,10 +14,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.6.0
         with:
           python-version: '3.11'
 
